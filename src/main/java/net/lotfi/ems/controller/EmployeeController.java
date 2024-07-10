@@ -2,6 +2,7 @@ package net.lotfi.ems.controller;
 
 
 import net.lotfi.ems.dto.EmployeeDto;
+import net.lotfi.ems.dto.LeaveDto;
 import net.lotfi.ems.entity.Employee;
 import net.lotfi.ems.exception.ResourceNotFoundException;
 import net.lotfi.ems.service.EmployeeService;
@@ -63,6 +64,15 @@ public class EmployeeController {
         response.put("deleted", Boolean.TRUE);
         return ResponseEntity.ok(response);
     }
+
+    // Leaves management
+
+    @PostMapping
+    public ResponseEntity<LeaveDto> createLeave(@RequestBody LeaveDto leaveDto){
+        LeaveDto savedLeaveDto = employeeService.createLeave(leaveDto);
+        return new ResponseEntity<>(savedLeaveDto, HttpStatus.CREATED);
+    }
+
 
 
 

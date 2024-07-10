@@ -1,6 +1,9 @@
 package net.lotfi.ems.entity;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "employees")
 public class Employee {
@@ -18,6 +21,11 @@ public class Employee {
     @Column(name = "email")
     private String email;
 
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Leave> leaves = new ArrayList<Leave>();
+
+    private Integer availableLeaveDays = 0;
+
     public Employee() {
 
     }
@@ -29,11 +37,8 @@ public class Employee {
         this.email = email;
     }
 
-    public long getId() {
+    public Long getId() {
         return id;
-    }
-    public void setId(long id) {
-        this.id = id;
     }
     public String getFirstName() {
         return firstName;
@@ -52,5 +57,25 @@ public class Employee {
     }
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public List<Leave> getLeaves() {
+        return leaves;
+    }
+
+    public Integer getAvailableLeaveDays() {
+        return availableLeaveDays;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setLeaves(List<Leave> leaves) {
+        this.leaves = leaves;
+    }
+
+    public void setAvailableLeaveDays(Integer availableLeaveDays) {
+        this.availableLeaveDays = availableLeaveDays;
     }
 }
