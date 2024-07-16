@@ -1,9 +1,11 @@
 package net.lotfi.ems.entity;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import net.lotfi.ems.enums.LeaveState;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 @Entity
@@ -15,11 +17,13 @@ public class Leave {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "start_date")
-    private Date startDate;
+    @Column(name = "start_date", nullable = false)
+    @NotNull
+    private LocalDate startDate;
 
-    @Column(name = "end_date")
-    private Date endDate;
+    @Column(name = "end_date", nullable = false)
+    @NotNull
+    private LocalDate endDate;
 
     @Column(name = "state", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -27,16 +31,15 @@ public class Leave {
     private LeaveState state;
 
     // Owning side
-    @Column(nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id")
+    @JoinColumn(name = "employee_id", nullable = false)
     @NotNull
     private Employee employee;
 
 
 //  Constructors
 
-    public Leave(Long id, Date startDate, Date endDate, LeaveState state, Employee employee) {
+    public Leave(Long id, LocalDate startDate, LocalDate endDate, LeaveState state, Employee employee) {
         this.id = id;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -54,11 +57,11 @@ public class Leave {
         return id;
     }
 
-    public Date getStartDate() {
+    public LocalDate getStartDate() {
         return startDate;
     }
 
-    public Date getEndDate() {
+    public LocalDate getEndDate() {
         return endDate;
     }
 
@@ -75,15 +78,15 @@ public class Leave {
         this.id = id;
     }
 
-    public void setStartDate(Date startDate) {
+    public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }
 
-    public void setState(String state) {
+    public void setState(LeaveState state) {
         this.state = state;
     }
 

@@ -21,13 +21,13 @@ public class Employee {
     @Column(name = "email")
     private String email;
 
+    @Column(name = "available_leave_days")
+    private Integer availableLeaveDays = 25;
+
     @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Leave> leaves = new ArrayList<Leave>();
 
-    private Integer availableLeaveDays = 0;
-
     public Employee() {
-
     }
 
     public Employee(Long id, String firstName, String lastName, String email) {

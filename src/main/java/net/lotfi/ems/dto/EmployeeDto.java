@@ -6,6 +6,7 @@ public class EmployeeDto {
     private String firstName;
     private String lastName;
     private String email;
+    private int availableLeaveDays;
 
     public EmployeeDto() {
     }
@@ -15,6 +16,14 @@ public class EmployeeDto {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+    }
+
+    public int getAvailableLeaveDays() {
+        return availableLeaveDays;
+    }
+
+    public void setAvailableLeaveDays(int availableLeaveDays) {
+        this.availableLeaveDays = availableLeaveDays;
     }
 
     public void setId(Long id) {

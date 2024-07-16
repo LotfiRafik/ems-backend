@@ -13,10 +13,12 @@ public interface EmployeeService {
     EmployeeDto getEmployeeById(Long employeeId);
 
     List<EmployeeDto> getAllEmployees();
+    List<LeaveDto> getAllLeaves();
 
     void deleteEmployee(Long id);
 
     EmployeeDto updateEmployee(Long id, EmployeeDto employeeDto);
 
     LeaveDto createLeave(LeaveDto leaveDto);
+
 }

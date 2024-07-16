@@ -2,20 +2,21 @@ package net.lotfi.ems.dto;
 
 import net.lotfi.ems.enums.LeaveState;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 public class LeaveDto {
 
     private Long id;
-    private Date startDate;
-    private Date endDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private LeaveState state;
     private Long employeeId;
 
     public LeaveDto() {
     }
 
-    public LeaveDto(Long id, Date startDate, Date endDate, LeaveState state, Long employeeId) {
+    public LeaveDto(Long id, LocalDate startDate, LocalDate endDate, LeaveState state, Long employeeId) {
         this.id = id;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -27,11 +28,11 @@ public class LeaveDto {
         this.id = id;
     }
 
-    public void setStartDate(Date startDate) {
+    public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }
 
@@ -43,11 +44,11 @@ public class LeaveDto {
         return id;
     }
 
-    public Date getStartDate() {
+    public LocalDate getStartDate() {
         return startDate;
     }
 
-    public Date getEndDate() {
+    public LocalDate getEndDate() {
         return endDate;
     }
 

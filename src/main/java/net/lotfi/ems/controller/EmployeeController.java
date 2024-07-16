@@ -4,7 +4,6 @@ package net.lotfi.ems.controller;
 import net.lotfi.ems.dto.EmployeeDto;
 import net.lotfi.ems.dto.LeaveDto;
 import net.lotfi.ems.entity.Employee;
-import net.lotfi.ems.exception.ResourceNotFoundException;
 import net.lotfi.ems.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -65,16 +64,14 @@ public class EmployeeController {
         return ResponseEntity.ok(response);
     }
 
-    // Leaves management
+    // **************************** EMPLOYEES LEAVES MANAGEMENT *******************************
 
-    @PostMapping
-    public ResponseEntity<LeaveDto> createLeave(@RequestBody LeaveDto leaveDto){
+    @PostMapping("{employeeId}/leaves")
+    public ResponseEntity<LeaveDto> createLeave(@RequestBody LeaveDto leaveDto, @PathVariable Long employeeId){
+        leaveDto.setEmployeeId(employeeId);
         LeaveDto savedLeaveDto = employeeService.createLeave(leaveDto);
         return new ResponseEntity<>(savedLeaveDto, HttpStatus.CREATED);
     }
-
-
-
 
 
 }

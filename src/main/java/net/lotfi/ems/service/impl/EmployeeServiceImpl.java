@@ -5,19 +5,22 @@ import net.lotfi.ems.dto.LeaveDto;
 import net.lotfi.ems.entity.Employee;
 import net.lotfi.ems.entity.Leave;
 import net.lotfi.ems.enums.LeaveState;
-import net.lotfi.ems.exception.ResourceNotFoundException;
+import net.lotfi.ems.exception.CustomErrorException;
 import net.lotfi.ems.mapper.EmployeeMapper;
 import net.lotfi.ems.mapper.LeaveMapper;
 import net.lotfi.ems.repository.EmployeeRepository;
 import net.lotfi.ems.repository.LeaveRepository;
 import net.lotfi.ems.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +48,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeeDto getEmployeeById(Long employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("No employee exist with the given id : "+employeeId));
+                        new CustomErrorException("No employee exist with the given id : "+employeeId));
 
         return EmployeeMapper.mapToEmployeeDto(employee);
     }
@@ -62,9 +65,19 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 
     @Override
+    public List<LeaveDto> getAllLeaves() {
+        List<Leave> leaves = leaveRepository.findAll();
+        return leaves
+                .stream()
+                .map(leave -> LeaveMapper.mapToLeaveDto(leave))
+                .toList();
+    }
+
+
+    @Override
     public EmployeeDto updateEmployee(Long id, EmployeeDto employeeDto){
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not exist with id :" + id));
+                .orElseThrow(() -> new CustomErrorException("Employee not exist with id :" + id));
 
         employee.setFirstName(employeeDto.getFirstName());
         employee.setLastName(employeeDto.getLastName());
@@ -77,7 +90,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     // delete employee rest api
     public void deleteEmployee(Long id){
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not exist with id :" + id));
+                .orElseThrow(() -> new CustomErrorException("Employee not exist with id :" + id));
 
         employeeRepository.delete(employee);
     }
@@ -88,16 +101,76 @@ public class EmployeeServiceImpl implements EmployeeService {
     public LeaveDto createLeave(LeaveDto leaveDto) {
         // Get concerned employee
         Employee employee = employeeRepository.findById(leaveDto.getEmployeeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not exist with id :" + leaveDto.getEmployeeId()));
+                .orElseThrow(() -> new CustomErrorException("Employee not exist with id :" + leaveDto.getEmployeeId()));
+
+        EmployeeDto employeeDto = EmployeeMapper.mapToEmployeeDto(employee);
+        // Check if this leave is valid
+        Map<String, String> result = isLeaveValide(leaveDto, employeeDto);
+        if (!Boolean.parseBoolean(result.get("status"))){
+            throw new CustomErrorException(HttpStatus.BAD_REQUEST ,result.get("error"));
+        }
 
         // Set default state
         leaveDto.setState(LeaveState.SUBMITED_TO_REVIEW);
-
         Leave leave = LeaveMapper.mapToLeave(leaveDto);
         leave.setEmployee(employee);
         Leave savedLeave = leaveRepository.save(leave);
         return LeaveMapper.mapToLeaveDto(savedLeave);
     }
+
+    public Map<String, String> isLeaveValide(LeaveDto leaveDto, EmployeeDto employeeDto){
+        LocalDate currentDate = LocalDate.now();
+        LocalDate startDate = leaveDto.getStartDate();
+        LocalDate endDate = leaveDto.getEndDate();
+        Map<String, String> result = new HashMap<String, String>();
+        result.put("status", "true");
+
+        String invalidReason = "";
+
+        if (startDate.isBefore(currentDate) || endDate.isBefore(currentDate) || startDate.isAfter(endDate)) {
+            result.put("error", "Incoherent leave dates");
+            result.put("status", null);
+            return result;
+        }
+
+        long nb_leave_days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        if (employeeDto.getAvailableLeaveDays() < nb_leave_days){
+            result.put("error", "Exceeded available leave days" +
+                    " | Available leave days : " + employeeDto.getAvailableLeaveDays() +
+                    " | Requested leave days : " + nb_leave_days);
+            result.put("status", null);
+            return result;
+        }
+
+        // Les conges d’un meme employe ne peuvent pas se chevaucher.
+
+        Integer nbOverlapLeaves = leaveRepository.findOverlappingLeaves(startDate, endDate, employeeDto.getId());
+        System.out.println(nbOverlapLeaves);
+        if (nbOverlapLeaves > 0){
+            result.put("error", "Overlapping leaves found");
+            result.put("status", null);
+            return result;
+        }
+
+        return result;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 }
