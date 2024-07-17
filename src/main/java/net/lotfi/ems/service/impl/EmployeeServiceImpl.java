@@ -101,7 +101,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public LeaveDto createLeave(LeaveDto leaveDto) {
         // Get concerned employee
         Employee employee = employeeRepository.findById(leaveDto.getEmployeeId())
-                .orElseThrow(() -> new CustomErrorException("Employee not exist with id :" + leaveDto.getEmployeeId()));
+                .orElseThrow(() -> new CustomErrorException("Employee not found with id :" + leaveDto.getEmployeeId()));
 
         EmployeeDto employeeDto = EmployeeMapper.mapToEmployeeDto(employee);
         // Check if this leave is valid
@@ -145,7 +145,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Les conges d’un meme employe ne peuvent pas se chevaucher.
 
         Integer nbOverlapLeaves = leaveRepository.findOverlappingLeaves(startDate, endDate, employeeDto.getId());
-        System.out.println(nbOverlapLeaves);
         if (nbOverlapLeaves > 0){
             result.put("error", "Overlapping leaves found");
             result.put("status", null);

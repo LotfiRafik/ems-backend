@@ -1,10 +1,13 @@
 package net.lotfi.ems;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,22 +26,23 @@ import java.time.LocalDate;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 // TODO parametrize sql statement if possible ==> benifit ==> no need to create sql script files
-// TODO check how to create brand new database as spring does for each test
-// TODO after each test delete all data, leave schema
-// TODO , all tests need same database schema (tables, contraints..etc) , but each test needs a fresh database so it wouldnt be dependent on other tests
-
 @SpringBootTest
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class EmsBackendApplicationTests {
-
 	@Autowired
 	private MockMvc mockMvc;
+	private TestInfo testInfo;
+
+	@BeforeEach
+	void init(TestInfo testInfo) {
+		this.testInfo = testInfo;
+		System.out.println("displayName = " + testInfo.getDisplayName());
+	}
 
 	@Test
-	@Disabled
 	@SqlGroup({
 			@Sql("/create-employee-1.sql"),
-			@Sql("/reverse-create-employee-1.sql"),
 	})
 	void getEmployees() throws Exception {
 		// Act
@@ -51,8 +55,6 @@ class EmsBackendApplicationTests {
 
 	@Test
 	@SqlGroup({
-			@Sql("/create-employee-1.sql"),
-			@Sql("/create-leave-emp-1.sql"),
 			@Sql("/create-leave-emp-1.sql"),
 	})
 	void createValideLeave() throws Exception {
@@ -61,8 +63,8 @@ class EmsBackendApplicationTests {
 		LocalDate endDate = currentDate.plusDays(4);
 
 		String leaveJson = "{" +
-								"\"startDate\" : " + startDate.toString() + "," +
-								"\"endDate\" : " + endDate.toString() +
+								"\"startDate\" : \"" + startDate.toString() + "\"," +
+								"\"endDate\" : \"" + endDate.toString() + "\"" +
 							"}";
 		// Act
 		ResultActions result = mockMvc.perform(post("/api/employees/1/leaves")
@@ -74,6 +76,9 @@ class EmsBackendApplicationTests {
 	}
 
 	@Test
+	@SqlGroup({
+			@Sql("/create-employee-1.sql"),
+	})
 	void createLeaveWithIncoherentDates() throws Exception {
 		/*
 			issue : startDate > endDate
@@ -85,13 +90,16 @@ class EmsBackendApplicationTests {
 				.content(leaveJson));
 
 		// Assert
-		result.andExpect(status().is(400));
+		result.andDo(print()).andExpect(status().is(400));
 	}
 
 	@Test
+	@SqlGroup({
+			@Sql("/create-employee-1.sql"),
+	})
 	void createLeaveExceedAvailableDays() throws Exception {
 		/*
-			issue : exceeded available leave days
+			test : Exceeded available leave days
 		 */
 		String leaveJson = "{\"startDate\":\"2024-09-01\",\"endDate\":\"2024-09-30\"}";
 		// Act
@@ -104,19 +112,41 @@ class EmsBackendApplicationTests {
 	}
 
 	@Test
-	@Disabled
-	void createOverlappingLeave() throws Exception {
+	@SqlGroup({
+			@Sql("/create-leave-emp-1.sql"),
+	})
+	void createOverlappingLeave(TestInfo testInfo) throws Exception {
 		/*
-			issue : Overlapping leave
+			test : Overlapping leaves
 		 */
-		String leaveJson = "{\"startDate\":\"2024-09-01\",\"endDate\":\"2024-09-30\"}";
-		// Act
-		ResultActions result = mockMvc.perform(post("/api/employees/1/leaves")
+
+		// Overlapping leave 1 : fully overlapped
+		String leaveJson = "{\"startDate\":\"2024-08-02\",\"endDate\":\"2024-08-09\"}";
+		// Assert
+		// TODO assert json result content (err msg..etc)
+		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+
+		// Overlapping leave 2 : exacte leave interval
+		leaveJson = "{\"startDate\":\"2024-08-01\",\"endDate\":\"2024-08-10\"}";
+		// Assert
+		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+
+		// Overlapping leave 3 : endDate overlaps
+		leaveJson = "{\"startDate\":\"2024-07-30\",\"endDate\":\"2024-08-02\"}";
+		// Assert
+		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+
+		// Overlapping leave 4 : startDate overlaps
+		leaveJson = "{\"startDate\":\"2024-08-09\",\"endDate\":\"2024-08-12\"}";
+		// Assert
+		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+	}
+
+
+	ResultActions createLeaveTest(String leaveJson) throws Exception {
+		return mockMvc.perform(post("/api/employees/1/leaves")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(leaveJson));
-
-		// Assert
-		result.andExpect(status().is(400));
 	}
 
 
