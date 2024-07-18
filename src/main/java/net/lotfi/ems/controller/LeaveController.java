@@ -4,6 +4,7 @@ package net.lotfi.ems.controller;
 import net.lotfi.ems.dto.EmployeeDto;
 import net.lotfi.ems.dto.LeaveDto;
 import net.lotfi.ems.service.EmployeeService;
+import net.lotfi.ems.service.LeaveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,19 +18,38 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/leaves")
 public class LeaveController {
-    private EmployeeService employeeService;
+    private LeaveService leaveService;
 
     @Autowired
-    public LeaveController(EmployeeService employeeService) {
-        this.employeeService = employeeService;
+    public LeaveController(LeaveService leaveService) {
+        this.leaveService = leaveService;
     }
 
     // get all leaves
     @GetMapping
     public ResponseEntity<List<LeaveDto>> getAllLeaves(){
-        List<LeaveDto> leaveDtos = employeeService.getAllLeaves();
+        List<LeaveDto> leaveDtos = leaveService.getAllLeaves();
         return ResponseEntity.ok(leaveDtos);
     }
+
+    @PutMapping("{leaveId}/approve")
+    public ResponseEntity<LeaveDto> approveLeave(@PathVariable Long leaveId){
+        LeaveDto updatedLeaveDto = leaveService.approveLeave(leaveId);
+        return ResponseEntity.ok(updatedLeaveDto);
+    }
+
+    @PutMapping("{leaveId}/cancel")
+    public ResponseEntity<LeaveDto> cancelLeave(@PathVariable Long leaveId){
+        LeaveDto updatedLeaveDto = leaveService.cancelLeave(leaveId);
+        return ResponseEntity.ok(updatedLeaveDto);
+    }
+
+    @PutMapping("{leaveId}/reject")
+    public ResponseEntity<LeaveDto> rejectLeave(@PathVariable Long leaveId){
+        LeaveDto updatedLeaveDto = leaveService.rejectLeave(leaveId);
+        return ResponseEntity.ok(updatedLeaveDto);
+    }
+
 
 
 }

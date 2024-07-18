@@ -68,10 +68,10 @@ public class EmployeeController {
 
     @PostMapping("{employeeId}/leaves")
     public ResponseEntity<LeaveDto> createLeave(@RequestBody LeaveDto leaveDto, @PathVariable Long employeeId){
+        // TODO input validation
         leaveDto.setEmployeeId(employeeId);
         LeaveDto savedLeaveDto = employeeService.createLeave(leaveDto);
         return new ResponseEntity<>(savedLeaveDto, HttpStatus.CREATED);
     }
-
 
 }

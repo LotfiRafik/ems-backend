@@ -27,7 +27,7 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
             "AND " +
                 "l.employee.id = ?3 " +
             "AND " +
-                "l.state = APPROVED"
+                "l.state IN (\"APPROVED\", \"SUBMITED_TO_REVIEW\")"
     )
     Integer findOverlappingLeaves(LocalDate startDate, LocalDate endDate, Long employeeId);
 

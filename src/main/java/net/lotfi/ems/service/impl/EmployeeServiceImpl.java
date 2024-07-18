@@ -63,16 +63,10 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .toList();
     }
 
-
     @Override
     public List<LeaveDto> getAllLeaves() {
-        List<Leave> leaves = leaveRepository.findAll();
-        return leaves
-                .stream()
-                .map(leave -> LeaveMapper.mapToLeaveDto(leave))
-                .toList();
+        return List.of();
     }
-
 
     @Override
     public EmployeeDto updateEmployee(Long id, EmployeeDto employeeDto){
@@ -90,7 +84,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     // delete employee rest api
     public void deleteEmployee(Long id){
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new CustomErrorException("Employee not exist with id :" + id));
+                .orElseThrow(() -> new CustomErrorException(HttpStatus.NOT_FOUND, "Employee not exist with id :" + id));
 
         employeeRepository.delete(employee);
     }
@@ -101,13 +95,14 @@ public class EmployeeServiceImpl implements EmployeeService {
     public LeaveDto createLeave(LeaveDto leaveDto) {
         // Get concerned employee
         Employee employee = employeeRepository.findById(leaveDto.getEmployeeId())
-                .orElseThrow(() -> new CustomErrorException("Employee not found with id :" + leaveDto.getEmployeeId()));
+                .orElseThrow(() -> new CustomErrorException(HttpStatus.NOT_FOUND,
+                        "Employee not found with id :" + leaveDto.getEmployeeId()));
 
         EmployeeDto employeeDto = EmployeeMapper.mapToEmployeeDto(employee);
         // Check if this leave is valid
-        Map<String, String> result = isLeaveValide(leaveDto, employeeDto);
-        if (!Boolean.parseBoolean(result.get("status"))){
-            throw new CustomErrorException(HttpStatus.BAD_REQUEST ,result.get("error"));
+        Map<String, Object> result = isLeaveValide(leaveDto, employeeDto);
+        if (!Boolean.parseBoolean((String) result.get("status"))){
+            throw new CustomErrorException(HttpStatus.BAD_REQUEST ,(String) result.get("error"), result.get("data"));
         }
 
         // Set default state
@@ -118,14 +113,14 @@ public class EmployeeServiceImpl implements EmployeeService {
         return LeaveMapper.mapToLeaveDto(savedLeave);
     }
 
-    public Map<String, String> isLeaveValide(LeaveDto leaveDto, EmployeeDto employeeDto){
+    public Map<String, Object> isLeaveValide(LeaveDto leaveDto, EmployeeDto employeeDto){
         LocalDate currentDate = LocalDate.now();
         LocalDate startDate = leaveDto.getStartDate();
         LocalDate endDate = leaveDto.getEndDate();
-        Map<String, String> result = new HashMap<String, String>();
+        Map<String, Object> result = new HashMap<String, Object>();
         result.put("status", "true");
-
-        String invalidReason = "";
+        result.put("error", null);
+        result.put("data", null);
 
         if (startDate.isBefore(currentDate) || endDate.isBefore(currentDate) || startDate.isAfter(endDate)) {
             result.put("error", "Incoherent leave dates");
@@ -135,10 +130,20 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         long nb_leave_days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
         if (employeeDto.getAvailableLeaveDays() < nb_leave_days){
-            result.put("error", "Exceeded available leave days" +
-                    " | Available leave days : " + employeeDto.getAvailableLeaveDays() +
-                    " | Requested leave days : " + nb_leave_days);
+            result.put("error", "Exceeded available leave days");
             result.put("status", null);
+
+            // create an object that have these fields (int avaialble days, int requested leave days)
+            result.put("data", new Object() {
+                int availableLeaveDays = employeeDto.getAvailableLeaveDays();
+                long requestedLeaveDays = nb_leave_days;
+                public int getAvailableLeaveDays() {
+                    return availableLeaveDays;
+                }
+                public long getRequestedLeaveDays() {
+                    return requestedLeaveDays;
+                }
+            });
             return result;
         }
 
