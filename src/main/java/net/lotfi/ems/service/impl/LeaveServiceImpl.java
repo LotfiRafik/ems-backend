@@ -14,14 +14,14 @@ import net.lotfi.ems.service.EmployeeService;
 import net.lotfi.ems.service.LeaveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class LeaveServiceImpl implements LeaveService {
@@ -48,9 +48,11 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     public LeaveDto approveLeave(Long leaveId){
+        // Check externel input
         Leave leave = leaveRepository.findById(leaveId)
                 .orElseThrow(() -> new CustomErrorException("Leave with id: " + leaveId + " not found"));
 
+        // Check state constraints
         LeaveState currentState = leave.getState();
         List<LeaveState> allowedLeaveStates = new ArrayList<>();
         allowedLeaveStates.add(LeaveState.SUBMITED_TO_REVIEW);
@@ -59,13 +61,22 @@ public class LeaveServiceImpl implements LeaveService {
             throw new CustomErrorException("Leave with state : " + currentState + " can not be approved");
         }
 
+        // Check dates constraints
         LocalDate startDate = leave.getStartDate();
         LocalDate currentDate = LocalDate.now();
-        // if leave already passed
         if (startDate.isBefore(currentDate)){
             throw new CustomErrorException("Leave has with startDate: " + startDate + " can not be approved");
         }
 
+        // Check authorization
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Employee userDetails = (Employee) authentication.getPrincipal();
+        System.out.println("User has authorities: " + userDetails.getAuthorities());
+        if (!Objects.equals(userDetails.getId(), leave.getEmployee().getManager().getId())){
+            throw new CustomErrorException("Only direct manager can approve leave requests");
+        }
+
+        // ACT
         leave.setState(LeaveState.APPROVED);
         Leave updatedLeave = leaveRepository.save(leave);
         // TODO notify user by email

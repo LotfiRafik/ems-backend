@@ -2,6 +2,9 @@ package net.lotfi.ems.mapper;
 
 import net.lotfi.ems.dto.EmployeeDto;
 import net.lotfi.ems.entity.Employee;
+import net.lotfi.ems.enums.RoleEnum;
+
+import java.util.Date;
 
 public class EmployeeMapper {
 
@@ -14,6 +17,9 @@ public class EmployeeMapper {
         );
 
         employeeDto.setAvailableLeaveDays(employee.getAvailableLeaveDays());
+        if (employee.getManager() != null){
+            employeeDto.setManagerId(employee.getManager().getId());
+        }
 
         return employeeDto;
     }
@@ -26,6 +32,8 @@ public class EmployeeMapper {
                 employeeDto.getEmail()
         );
         employee.setAvailableLeaveDays(employeeDto.getAvailableLeaveDays());
+        employee.setPassword(employeeDto.getPassword());
+        employee.setRole(employeeDto.getRole());
 
         return employee;
     }

@@ -2,6 +2,7 @@ package net.lotfi.ems.controller;
 
 
 import net.lotfi.ems.dto.EmployeeDto;
+import net.lotfi.ems.dto.EmployeeManagerDto;
 import net.lotfi.ems.dto.LeaveDto;
 import net.lotfi.ems.entity.Employee;
 import net.lotfi.ems.service.EmployeeService;
@@ -28,6 +29,7 @@ public class EmployeeController {
 
     // Build add employee REST API
     @PostMapping
+    // TODO add user fields (password...etc)
     public ResponseEntity<EmployeeDto> createEmployee(@RequestBody  EmployeeDto employeeDto){
         EmployeeDto savedEmployeeDto = employeeService.createEmployee(employeeDto);
         return new ResponseEntity<>(savedEmployeeDto, HttpStatus.CREATED);
@@ -40,7 +42,7 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeDto);
     }
 
-    // get all employees
+    // Get all employees
     @GetMapping
     public ResponseEntity<List<EmployeeDto>> getAllEmployees(){
         List<EmployeeDto> employeeDtos = employeeService.getAllEmployees();
@@ -73,5 +75,17 @@ public class EmployeeController {
         LeaveDto savedLeaveDto = employeeService.createLeave(leaveDto);
         return new ResponseEntity<>(savedLeaveDto, HttpStatus.CREATED);
     }
+
+
+    // *************************** EMPLOYEE MANAGER *****************************
+    // update employee rest api
+    @PutMapping("{employeeId}/manager")
+    public ResponseEntity<EmployeeDto> updateEmployeeManager(@PathVariable Long employeeId, @RequestBody EmployeeManagerDto employeeManagerDto){
+        EmployeeDto updatedEmployeeDto = employeeService.updateEmployeeManager(employeeId, employeeManagerDto);
+        return ResponseEntity.ok(updatedEmployeeDto);
+    }
+
+
+
 
 }

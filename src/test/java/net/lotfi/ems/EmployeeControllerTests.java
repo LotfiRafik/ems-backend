@@ -1,5 +1,6 @@
 package net.lotfi.ems;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -35,16 +36,34 @@ class EmployeeControllerTests {
 		System.out.println("displayName = " + testInfo.getDisplayName());
 	}
 
+	String login() throws Exception{
+		String loginBody = "{\"username\":\"john@samir.com\",\"password\":\"test\"}";
+		ResultActions result = mockMvc.perform(post("/api/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(loginBody));
+
+		// Assert
+		result.andExpect(status().isOk())
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON));
+
+		String response = result.andReturn().getResponse().getContentAsString();
+		String jwtToken = JsonPath.parse(response).read("$.token");
+		return jwtToken;
+	}
+
+
 	@Test
 	@SqlGroup({
 			@Sql("/create-employee-1.sql"),
 	})
 	void getEmployees() throws Exception {
+		// Login required before act
+		String jwtToken = login();
 		// Act
-		ResultActions result = mockMvc.perform(get("/api/employees"));
-
+		ResultActions result = mockMvc.perform(get("/api/employees").
+				header("Authorization", "Bearer " + jwtToken));
 		// Assert
-		result.andDo(print()).andExpect(status().isOk())
+		result.andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON));
 	}
 
@@ -56,13 +75,16 @@ class EmployeeControllerTests {
 		LocalDate currentDate = LocalDate.now();
 		LocalDate startDate = currentDate.plusDays(1);
 		LocalDate endDate = currentDate.plusDays(4);
-
 		String leaveJson = "{" +
 								"\"startDate\" : \"" + startDate.toString() + "\"," +
 								"\"endDate\" : \"" + endDate.toString() + "\"" +
 							"}";
+
+		// Login required before act
+		String jwtToken = login();
 		// Act
 		ResultActions result = mockMvc.perform(post("/api/employees/1/leaves")
+				.header("Authorization", "Bearer " + jwtToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(leaveJson));
 
@@ -79,8 +101,11 @@ class EmployeeControllerTests {
 			issue : startDate > endDate
 		 */
 		String leaveJson = "{\"startDate\":\"2024-08-29\",\"endDate\":\"2024-07-29\"}";
+		// Login required before act
+		String jwtToken = login();
 		// Act
 		ResultActions result = mockMvc.perform(post("/api/employees/1/leaves")
+				.header("Authorization", "Bearer " + jwtToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(leaveJson));
 
@@ -97,8 +122,11 @@ class EmployeeControllerTests {
 			test : Exceeded available leave days
 		 */
 		String leaveJson = "{\"startDate\":\"2024-09-01\",\"endDate\":\"2024-09-30\"}";
+		// Login required before act
+		String jwtToken = login();
 		// Act
 		ResultActions result = mockMvc.perform(post("/api/employees/1/leaves")
+				.header("Authorization", "Bearer " + jwtToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(leaveJson));
 
@@ -117,32 +145,37 @@ class EmployeeControllerTests {
 
 		// Overlapping leave 1 : fully overlapped
 		String leaveJson = "{\"startDate\":\"2024-08-02\",\"endDate\":\"2024-08-09\"}";
+		// Login required before act
+		String jwtToken = login();
+
 		// Assert
 		// TODO assert json result content (err msg..etc)
-		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+		createLeaveTest(leaveJson, jwtToken).andDo(print()).andExpect(status().is(400));
 
 		// Overlapping leave 2 : exacte leave interval
 		leaveJson = "{\"startDate\":\"2024-08-01\",\"endDate\":\"2024-08-10\"}";
 		// Assert
-		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+		createLeaveTest(leaveJson, jwtToken).andDo(print()).andExpect(status().is(400));
 
 		// Overlapping leave 3 : endDate overlaps
 		leaveJson = "{\"startDate\":\"2024-07-30\",\"endDate\":\"2024-08-02\"}";
 		// Assert
-		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+		createLeaveTest(leaveJson, jwtToken).andDo(print()).andExpect(status().is(400));
 
 		// Overlapping leave 4 : startDate overlaps
 		leaveJson = "{\"startDate\":\"2024-08-09\",\"endDate\":\"2024-08-12\"}";
 		// Assert
-		createLeaveTest(leaveJson).andDo(print()).andExpect(status().is(400));
+		createLeaveTest(leaveJson, jwtToken).andDo(print()).andExpect(status().is(400));
 	}
 
 
-	ResultActions createLeaveTest(String leaveJson) throws Exception {
+	ResultActions createLeaveTest(String leaveJson, String jwtToken) throws Exception {
 		return mockMvc.perform(post("/api/employees/1/leaves")
+				.header("Authorization", "Bearer " + jwtToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(leaveJson));
 	}
+
 
 
 }
