@@ -50,7 +50,7 @@ public class LeaveServiceImpl implements LeaveService {
     public LeaveDto approveLeave(Long leaveId){
         // Check externel input
         Leave leave = leaveRepository.findById(leaveId)
-                .orElseThrow(() -> new CustomErrorException("Leave with id: " + leaveId + " not found"));
+                .orElseThrow(() -> new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave with id: " + leaveId + " not found"));
 
         // Check state constraints
         LeaveState currentState = leave.getState();
@@ -58,22 +58,33 @@ public class LeaveServiceImpl implements LeaveService {
         allowedLeaveStates.add(LeaveState.SUBMITED_TO_REVIEW);
         allowedLeaveStates.add(LeaveState.REJECTED);
         if (!allowedLeaveStates.contains(currentState)) {
-            throw new CustomErrorException("Leave with state : " + currentState + " can not be approved");
+            throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave with state : " + currentState + " can not be approved");
         }
 
         // Check dates constraints
         LocalDate startDate = leave.getStartDate();
         LocalDate currentDate = LocalDate.now();
         if (startDate.isBefore(currentDate)){
-            throw new CustomErrorException("Leave has with startDate: " + startDate + " can not be approved");
+            throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave has with startDate: " + startDate + " can not be approved");
         }
 
         // Check authorization
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Employee userDetails = (Employee) authentication.getPrincipal();
         System.out.println("User has authorities: " + userDetails.getAuthorities());
-        if (!Objects.equals(userDetails.getId(), leave.getEmployee().getManager().getId())){
-            throw new CustomErrorException("Only direct manager can approve leave requests");
+
+        Employee manager = leave.getEmployee().getManager();
+        if (manager == null){
+            // if the leave's employee doesn't have a direct manager, only root employees can approve the leave
+            if(userDetails.getManager() != null){
+                throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Only root employee or direct manager can approve leave requests");
+            }
+        }
+        else{
+            // Only direct manager can approve leave
+            if (!Objects.equals(userDetails.getId(), manager.getId())){
+                throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Only direct manager can approve leave requests");
+            }
         }
 
         // ACT
@@ -90,22 +101,33 @@ public class LeaveServiceImpl implements LeaveService {
         Leave leave = leaveRepository.findById(leaveId)
                 .orElseThrow(() -> new CustomErrorException("Leave with id: " + leaveId + " not found"));
 
+        // Check state constraints
         LeaveState currentState = leave.getState();
         List<LeaveState> allowedLeaveStates = new ArrayList<>();
         allowedLeaveStates.add(LeaveState.SUBMITED_TO_REVIEW);
         allowedLeaveStates.add(LeaveState.APPROVED);
         if (!allowedLeaveStates.contains(currentState)) {
-            throw new CustomErrorException("Leave with state : " + currentState + " can not be cancelled");
+            throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave with state : " + currentState + " can not be cancelled");
         }
 
+        // Check date constraints
         if (currentState == LeaveState.APPROVED){
             LocalDate startDate = leave.getStartDate();
             LocalDate currentDate = LocalDate.now();
             // if leave already passed
             if (startDate.isBefore(currentDate)){
-                throw new CustomErrorException("Leave has with startDate: " + startDate + " can not be cancelled");
+                throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave has with startDate: " + startDate + " can not be cancelled");
             }
         }
+
+        // Check authorization
+        // Only the user who requested the leave that can cancel a leave
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Employee userDetails = (Employee) authentication.getPrincipal();
+        if (!Objects.equals(userDetails.getId(), leave.getEmployee().getId())){
+            throw new CustomErrorException(HttpStatus.FORBIDDEN, "Only the owner of the leave can cancel it");
+        }
+
 
         leave.setState(LeaveState.CANCELED);
         Leave updatedLeave = leaveRepository.save(leave);
@@ -118,15 +140,35 @@ public class LeaveServiceImpl implements LeaveService {
     @Override
     public LeaveDto rejectLeave(Long leaveId){
         Leave leave = leaveRepository.findById(leaveId)
-                .orElseThrow(() -> new CustomErrorException("Leave with id: " + leaveId + " not found"));
+                .orElseThrow(() -> new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave with id: " + leaveId + " not found"));
 
+
+        // *********** Check state constraints (respect state diagram) ***********
         LeaveState currentState = leave.getState();
         List<LeaveState> allowedLeaveStates = new ArrayList<>();
         allowedLeaveStates.add(LeaveState.SUBMITED_TO_REVIEW);
         if (!allowedLeaveStates.contains(currentState)) {
-            throw new CustomErrorException("Leave with state : " + currentState + " can not be rejected");
+            throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Leave with state : " + currentState + " can not be rejected");
         }
 
+        // *********** Check authorization ***********
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Employee userDetails = (Employee) authentication.getPrincipal();
+        Employee manager = leave.getEmployee().getManager();
+        if (manager == null){
+            // if the leave's employee doesn't have a direct manager, only root employees can reject the leave
+            if(userDetails.getManager() != null){
+                throw new CustomErrorException(HttpStatus.FORBIDDEN, "Only root employee or direct manager can reject leave requests");
+            }
+        }
+        else{
+            // Only direct manager can reject leave
+            if (!Objects.equals(userDetails.getId(), manager.getId())){
+                throw new CustomErrorException(HttpStatus.BAD_REQUEST, "Only direct manager can reject leave requests");
+            }
+        }
+
+        // ACT
         leave.setState(LeaveState.REJECTED);
         Leave updatedLeave = leaveRepository.save(leave);
         // TODO notify user by email

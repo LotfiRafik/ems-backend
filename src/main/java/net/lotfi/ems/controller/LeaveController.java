@@ -41,12 +41,14 @@ public class LeaveController {
     }
 
     @PutMapping("{leaveId}/cancel")
+    @PreAuthorize("hasAnyRole('EMPLOYEE')")
     public ResponseEntity<LeaveDto> cancelLeave(@PathVariable Long leaveId){
         LeaveDto updatedLeaveDto = leaveService.cancelLeave(leaveId);
         return ResponseEntity.ok(updatedLeaveDto);
     }
 
     @PutMapping("{leaveId}/reject")
+    @PreAuthorize("hasAnyRole('EMPLOYEE')")
     public ResponseEntity<LeaveDto> rejectLeave(@PathVariable Long leaveId){
         LeaveDto updatedLeaveDto = leaveService.rejectLeave(leaveId);
         return ResponseEntity.ok(updatedLeaveDto);
