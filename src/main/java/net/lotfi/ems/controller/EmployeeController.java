@@ -6,6 +6,7 @@ import net.lotfi.ems.dto.EmployeeManagerDto;
 import net.lotfi.ems.dto.LeaveDto;
 import net.lotfi.ems.entity.Employee;
 import net.lotfi.ems.service.EmployeeService;
+import net.lotfi.ems.service.LeaveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +22,12 @@ import java.util.Map;
 @RequestMapping("/api/employees")
 public class EmployeeController {
     private EmployeeService employeeService;
+    private LeaveService leaveService;
 
     @Autowired
-    public EmployeeController(EmployeeService employeeService) {
+    public EmployeeController(EmployeeService employeeService, LeaveService leaveService) {
         this.employeeService = employeeService;
+        this.leaveService = leaveService;
     }
 
     // Build add employee REST API
@@ -76,6 +79,11 @@ public class EmployeeController {
         return new ResponseEntity<>(savedLeaveDto, HttpStatus.CREATED);
     }
 
+    @GetMapping("{employeeId}/leaves")
+    public ResponseEntity<List<LeaveDto>> getEmployeeLeaves(@PathVariable Long employeeId){
+        List<LeaveDto> leaveDtos = leaveService.getEmployeeLeaves(employeeId);
+        return ResponseEntity.ok(leaveDtos);
+    }
 
     // *************************** EMPLOYEE MANAGER *****************************
     // update employee rest api

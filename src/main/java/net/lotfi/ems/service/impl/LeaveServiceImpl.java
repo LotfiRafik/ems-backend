@@ -47,6 +47,15 @@ public class LeaveServiceImpl implements LeaveService {
     }
 
     @Override
+    public List<LeaveDto> getEmployeeLeaves(Long employeeId) {
+        List<Leave> leaves = leaveRepository.findEmployeeLeaves(employeeId);
+        return leaves
+                .stream()
+                .map(leave -> LeaveMapper.mapToLeaveDto(leave))
+                .toList();
+    }
+
+    @Override
     public LeaveDto approveLeave(Long leaveId){
         // Check externel input
         Leave leave = leaveRepository.findById(leaveId)
